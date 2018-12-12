@@ -80,9 +80,15 @@ public abstract class BeanFactoryUtils {
 	 */
 	public static String transformedBeanName(String name) {
 		Assert.notNull(name, "'name' must not be null");
+		/// 如果name不是以&开头的，则直接返回
 		if (!name.startsWith(BeanFactory.FACTORY_BEAN_PREFIX)) {
 			return name;
 		}
+		// transformedBeanNameCache是为了缓存转换结果
+		// computeIfAbsent
+		// 如果缓存中不存在该name的属性，则进行计算，并且把结果添加到缓存中，如果存在则不做操作
+		// 这里的操作是把开头的&去掉，例如，name = "&studentService" ，则会是 name = "studentService"。
+		// 这里一个循环，也说明bean可以以多个&&&开头
 		return transformedBeanNameCache.computeIfAbsent(name, beanName -> {
 			do {
 				beanName = beanName.substring(BeanFactory.FACTORY_BEAN_PREFIX.length());

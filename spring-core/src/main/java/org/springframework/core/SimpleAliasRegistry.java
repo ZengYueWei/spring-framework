@@ -52,6 +52,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 		Assert.hasText(name, "'name' must not be empty");
 		Assert.hasText(alias, "'alias' must not be empty");
 		synchronized (this.aliasMap) {
+			// 如果名字和alias相同则去除
 			if (alias.equals(name)) {
 				this.aliasMap.remove(alias);
 				if (logger.isDebugEnabled()) {
@@ -59,12 +60,14 @@ public class SimpleAliasRegistry implements AliasRegistry {
 				}
 			}
 			else {
+				// 获取alias那些已经注册的对应beanName
 				String registeredName = this.aliasMap.get(alias);
 				if (registeredName != null) {
 					if (registeredName.equals(name)) {
 						// An existing alias - no need to re-register
 						return;
 					}
+					// 判断是否允许覆盖
 					if (!allowAliasOverriding()) {
 						throw new IllegalStateException("Cannot define alias '" + alias + "' for name '" +
 								name + "': It is already registered for name '" + registeredName + "'.");
@@ -74,6 +77,8 @@ public class SimpleAliasRegistry implements AliasRegistry {
 								registeredName + "' with new target name '" + name + "'");
 					}
 				}
+				// 判断有没有循环指向的问题，即集合中如果同时存在（A,1）,(3,A)的循环指向
+				// 如果一个A已经是某个B的alias，那么A就不能拥有新的alias C
 				checkForAliasCircle(name, alias);
 				this.aliasMap.put(alias, name);
 				if (logger.isTraceEnabled()) {
@@ -215,6 +220,9 @@ public class SimpleAliasRegistry implements AliasRegistry {
 		String canonicalName = name;
 		// Handle aliasing...
 		String resolvedName;
+
+		// aliasMap中保存的是 别名的关系 即 key 为别名 value为真名
+		// 通过循环的方式取出实际指向的bean
 		do {
 			resolvedName = this.aliasMap.get(canonicalName);
 			if (resolvedName != null) {

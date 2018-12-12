@@ -112,8 +112,10 @@ public class PluggableSchemaResolver implements EntityResolver {
 		}
 
 		if (systemId != null) {
+			// 获取Resource 所在位置
 			String resourceLocation = getSchemaMappings().get(systemId);
 			if (resourceLocation != null) {
+				// 创建ClassPathResource
 				Resource resource = new ClassPathResource(resourceLocation, this.classLoader);
 				try {
 					InputSource source = new InputSource(resource.getInputStream());
@@ -139,6 +141,9 @@ public class PluggableSchemaResolver implements EntityResolver {
 	 */
 	private Map<String, String> getSchemaMappings() {
 		Map<String, String> schemaMappings = this.schemaMappings;
+		// 使用双检锁，实现schemaMappings单例。
+		// 但是schemaMappings并未加上volatile关键字
+		// 是否会致使指令重排，在多线程环境下的不安全呢？
 		if (schemaMappings == null) {
 			synchronized (this) {
 				schemaMappings = this.schemaMappings;
@@ -147,11 +152,13 @@ public class PluggableSchemaResolver implements EntityResolver {
 						logger.trace("Loading schema mappings from [" + this.schemaMappingsLocation + "]");
 					}
 					try {
+						// 以Properties的方式读取schemaMappings
 						Properties mappings =
 								PropertiesLoaderUtils.loadAllProperties(this.schemaMappingsLocation, this.classLoader);
 						if (logger.isTraceEnabled()) {
 							logger.trace("Loaded schema mappings: " + mappings);
 						}
+						// 把 mappings 初始化到 schemaMappings 中
 						schemaMappings = new ConcurrentHashMap<>(mappings.size());
 						CollectionUtils.mergePropertiesIntoMap(mappings, schemaMappings);
 						this.schemaMappings = schemaMappings;

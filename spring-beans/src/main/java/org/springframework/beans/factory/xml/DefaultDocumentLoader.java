@@ -69,11 +69,14 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	public Document loadDocument(InputSource inputSource, EntityResolver entityResolver,
 			ErrorHandler errorHandler, int validationMode, boolean namespaceAware) throws Exception {
 
+		// 创建DocumentBuilderFactory
 		DocumentBuilderFactory factory = createDocumentBuilderFactory(validationMode, namespaceAware);
 		if (logger.isTraceEnabled()) {
 			logger.trace("Using JAXP provider [" + factory.getClass().getName() + "]");
 		}
+		// 创建DocumentBuilder
 		DocumentBuilder builder = createDocumentBuilder(factory, entityResolver, errorHandler);
+		// 解析XML InputSource 返回Document对象
 		return builder.parse(inputSource);
 	}
 
@@ -88,15 +91,20 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	protected DocumentBuilderFactory createDocumentBuilderFactory(int validationMode, boolean namespaceAware)
 			throws ParserConfigurationException {
 
+		// 创建 DocumentBuilderFactory
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		// 设置命名空间
 		factory.setNamespaceAware(namespaceAware);
 
 		if (validationMode != XmlValidationModeDetector.VALIDATION_NONE) {
+			// 开启检验
 			factory.setValidating(true);
 			if (validationMode == XmlValidationModeDetector.VALIDATION_XSD) {
 				// Enforce namespace aware for XSD...
+				// 在XSD模式下，强制开启支持命名空间
 				factory.setNamespaceAware(true);
 				try {
+					// 将Schema语言设置为XSD模式
 					factory.setAttribute(SCHEMA_LANGUAGE_ATTRIBUTE, XSD_SCHEMA_LANGUAGE);
 				}
 				catch (IllegalArgumentException ex) {
@@ -128,10 +136,14 @@ public class DefaultDocumentLoader implements DocumentLoader {
 			@Nullable EntityResolver entityResolver, @Nullable ErrorHandler errorHandler)
 			throws ParserConfigurationException {
 
+		// 创建DocumentBuilder对象
 		DocumentBuilder docBuilder = factory.newDocumentBuilder();
+		// 设置EntityResolver属性
+		// 这个对象是根据
 		if (entityResolver != null) {
 			docBuilder.setEntityResolver(entityResolver);
 		}
+		// 设置ErrorHandler属性
 		if (errorHandler != null) {
 			docBuilder.setErrorHandler(errorHandler);
 		}

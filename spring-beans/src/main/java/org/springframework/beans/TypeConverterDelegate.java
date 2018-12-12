@@ -151,6 +151,8 @@ class TypeConverterDelegate {
 	@Nullable
 	public <T> T convertIfNecessary(@Nullable String propertyName, @Nullable Object oldValue, @Nullable Object newValue,
 			@Nullable Class<T> requiredType, @Nullable TypeDescriptor typeDescriptor) throws IllegalArgumentException {
+		// 主要使用 ConversionService 的转换方法
+		// ConversionService 是Spring3后推出，用于替代 PropertyEditor 转换模式的。
 
 		// Custom editor for this type?
 		PropertyEditor editor = this.propertyEditorRegistry.findCustomEditor(requiredType, propertyName);

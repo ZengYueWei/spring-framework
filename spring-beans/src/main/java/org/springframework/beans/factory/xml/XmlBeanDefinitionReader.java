@@ -126,6 +126,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 
 	private final XmlValidationModeDetector validationModeDetector = new XmlValidationModeDetector();
 
+	// 记录当前线程中 正在加载的 EncodedResource 集合
 	private final ThreadLocal<Set<EncodedResource>> resourcesCurrentlyBeingLoaded =
 			new NamedThreadLocal<>("XML bean definition resources currently being loaded");
 
@@ -259,6 +260,18 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	protected EntityResolver getEntityResolver() {
 		if (this.entityResolver == null) {
 			// Determine default EntityResolver to use.
+			/*
+				一共有四个EntityResolver子类
+				BeansDtdResolver ： 实现 EntityResolver接口，作为Spring Bean dtd解码器，用来从classpath或jar中加载dtd文件
+				PluggableSchemaResolver： 实现 EntityResolver 接口，读取 classpath 下的所有 "META-INF/spring.schemas" 成一个 namespaceURI 与 Schema 文件地址的 map
+				DelegatingEntityResolver ： 分别代理 dtd 的 BeansDtdResolver 和 xml schemas 的 PluggableSchemaResolver 。
+				ResourceEntityResolver： 继承自 DelegatingEntityResolver 类，通过 ResourceLoader 来解析实体的引用。
+			 */
+			/*
+				EntityResolver的作用是，通过实现它，应用可自定义如何寻找【验证文件】的逻辑。
+			 */
+			// 如果ResourceLoader 不为null，就根据ResourceLoader创建一个ResourceEntityResolver
+			// 如果其为null，就创建一个DelegatingEntityResolver，该Resolver委托给默认的 BeansDtdResolver 和 PluggableSchemaResolver
 			ResourceLoader resourceLoader = getResourceLoader();
 			if (resourceLoader != null) {
 				this.entityResolver = new ResourceEntityResolver(resourceLoader);
@@ -301,6 +314,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 */
 	@Override
 	public int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException {
+		// 把Resource 封装成 EncodedResource ，是为了对Resource进行编码，保证内容读取的正确性。
 		return loadBeanDefinitions(new EncodedResource(resource));
 	}
 
@@ -317,22 +331,28 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 			logger.trace("Loading XML bean definitions from " + encodedResource);
 		}
 
+		// 通过属性来记录已经加载的资源，放入currentResources的缓存中
+		// 用非常长的代码来检查resource对应文件的编码
 		Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
 		if (currentResources == null) {
 			currentResources = new HashSet<>(4);
 			this.resourcesCurrentlyBeingLoaded.set(currentResources);
 		}
+		// 将当前资源放进currentResources 中，如果当前资源已经存在，就抛出异常。
+		// 抛出异常的原因是：避免一个Resource加载时还没完成就又加载自身，从而导致死循环。
 		if (!currentResources.add(encodedResource)) {
 			throw new BeanDefinitionStoreException(
 					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
 		}
 		try {
+			// 从encodedResource中获取到InputStream
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
 				InputSource inputSource = new InputSource(inputStream);
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
 				}
+				// 最核心的部分，加载beanDefinition
 				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 			}
 			finally {
@@ -344,6 +364,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 					"IOException parsing XML document from " + encodedResource.getResource(), ex);
 		}
 		finally {
+			// 从缓存中剔除该资源
 			currentResources.remove(encodedResource);
 			if (currentResources.isEmpty()) {
 				this.resourcesCurrentlyBeingLoaded.remove();
@@ -385,6 +406,10 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see #doLoadDocument
 	 * @see #registerBeanDefinitions
 	 */
+	// 主要做三件事情
+	// 1.获取对XML文件的验证模式(DTD和XSD)
+	// 2.加载XML文件，并得到对应的Document。
+	// 3.根据返回的Document注册Bean信息。
 	protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
 			throws BeanDefinitionStoreException {
 
@@ -431,6 +456,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see DocumentLoader#loadDocument
 	 */
 	protected Document doLoadDocument(InputSource inputSource, Resource resource) throws Exception {
+		// 首先调用 getValidationModeForResource 获取资源xml的验证模式
+		// 然后调用 loadDocument 的方法，获取XML Document实例
+		// 这里的EntityResolver属性值是根据传入的ResourceLoader来决定的，详情可点进该方法查看
 		return this.documentLoader.loadDocument(inputSource, getEntityResolver(), this.errorHandler,
 				getValidationModeForResource(resource), isNamespaceAware());
 	}
@@ -445,9 +473,11 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 */
 	protected int getValidationModeForResource(Resource resource) {
 		int validationModeToUse = getValidationMode();
+		// 如果手动指定了验证模式，则使用指定的验证模式
 		if (validationModeToUse != VALIDATION_AUTO) {
 			return validationModeToUse;
 		}
+		// 如果没有指定，就使用自动检测
 		int detectedMode = detectValidationMode(resource);
 		if (detectedMode != VALIDATION_AUTO) {
 			return detectedMode;
@@ -466,6 +496,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * of the {@link #VALIDATION_AUTO} mode.
 	 */
 	protected int detectValidationMode(Resource resource) {
+		// 如果当前资源不可读，就爬出BeanDefinitionStoreException
 		if (resource.isOpen()) {
 			throw new BeanDefinitionStoreException(
 					"Passed-in Resource [" + resource + "] contains an open stream: " +
@@ -474,6 +505,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 					"on your XmlBeanDefinitionReader instance.");
 		}
 
+		// 打开InputStream文件流
 		InputStream inputStream;
 		try {
 			inputStream = resource.getInputStream();
@@ -486,6 +518,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		}
 
 		try {
+			// 获取文件流对应文件的验证模式
 			return this.validationModeDetector.detectValidationMode(inputStream);
 		}
 		catch (IOException ex) {
@@ -508,9 +541,13 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see BeanDefinitionDocumentReader#registerBeanDefinitions
 	 */
 	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+		// 使用 DefaultBeanDefintionDocumentReader 实例化 BeanDefinitionDocumentReader
 		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
+		// 记录统计前已注册BeanDefinitions的加载个数
 		int countBefore = getRegistry().getBeanDefinitionCount();
+		// 加载及注册bean
 		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+		// 记录本次加载的BeanDefinitions个数
 		return getRegistry().getBeanDefinitionCount() - countBefore;
 	}
 
