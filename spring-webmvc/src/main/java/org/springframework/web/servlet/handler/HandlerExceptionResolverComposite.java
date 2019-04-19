@@ -38,6 +38,7 @@ public class HandlerExceptionResolverComposite implements HandlerExceptionResolv
 	@Nullable
 	private List<HandlerExceptionResolver> resolvers;
 
+	// 最低的优先级
 	private int order = Ordered.LOWEST_PRECEDENCE;
 
 

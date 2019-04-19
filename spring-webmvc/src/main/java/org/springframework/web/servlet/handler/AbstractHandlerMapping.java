@@ -289,8 +289,12 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	 */
 	@Override
 	protected void initApplicationContext() throws BeansException {
+		// 留给子类实现的方法，允许子类在初始化拦截器前，注册额外的 Interceptors 到 MappedInterceptor，注意是s
 		extendInterceptors(this.interceptors);
+		// 探测到所有类型为MappedInterceptor的Bean，并将它们加入到 adaptedInterceptors 列表中
+		// 那么之前已经注册的MappedInterceptor，是不是在这个方法就会被转化成 adaptedInterceptor
 		detectMappedInterceptors(this.adaptedInterceptors);
+		// 将所有的MapperInterceptor 直接转化为 adaptedInterceptors
 		initInterceptors();
 	}
 
@@ -398,7 +402,9 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	@Override
 	@Nullable
 	public final HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+		// 获得处理器。该方法是抽象方法，由子类实现
 		Object handler = getHandlerInternal(request);
+		// 获得不到，则使用默认处理器
 		if (handler == null) {
 			handler = getDefaultHandler();
 		}
@@ -411,6 +417,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 			handler = obtainApplicationContext().getBean(handlerName);
 		}
 
+		// 获得 HandlerExecutionChain 对象
 		HandlerExecutionChain executionChain = getHandlerExecutionChain(handler, request);
 
 		if (logger.isTraceEnabled()) {
@@ -473,6 +480,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 		HandlerExecutionChain chain = (handler instanceof HandlerExecutionChain ?
 				(HandlerExecutionChain) handler : new HandlerExecutionChain(handler));
 
+		// 找到对应的路径，用于匹配Interceptor
 		String lookupPath = this.urlPathHelper.getLookupPathForRequest(request);
 		for (HandlerInterceptor interceptor : this.adaptedInterceptors) {
 			if (interceptor instanceof MappedInterceptor) {

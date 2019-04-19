@@ -86,6 +86,8 @@ public interface HandlerAdapter {
 	 * @see javax.servlet.http.HttpServlet#getLastModified
 	 * @see org.springframework.web.servlet.mvc.LastModified#getLastModified
 	 */
+	// 返回请求的最新更新时间
+	// 如果不支持这个操作，则返回-1
 	long getLastModified(HttpServletRequest request, Object handler);
 
 }

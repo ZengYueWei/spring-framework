@@ -104,6 +104,7 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 			return matchPreFlight(request);
 		}
 
+		// 如果获取到的方法为空，会返回自身
 		if (getMethods().isEmpty()) {
 			if (RequestMethod.OPTIONS.name().equals(request.getMethod()) &&
 					!DispatcherType.ERROR.equals(request.getDispatcherType())) {

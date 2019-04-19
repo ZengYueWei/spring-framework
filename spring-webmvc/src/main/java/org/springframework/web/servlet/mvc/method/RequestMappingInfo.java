@@ -226,6 +226,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 			return null;
 		}
 
+		// 为什么下面两个单拎出来？
 		PatternsRequestCondition patterns = this.patternsCondition.getMatchingCondition(request);
 		if (patterns == null) {
 			return null;
@@ -236,6 +237,9 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 			return null;
 		}
 
+		// 为什么直接返回RequestMapping对象
+		// 因为可能原先一个RequestMappingInfo对象可以对应多个请求方法method，而通过请求去获取实际上只会对应一种方法
+		// 则通过第一行的执行后，找到唯一匹配的一个请求方法放到methods
 		return new RequestMappingInfo(this.name, patterns,
 				methods, params, headers, consumes, produces, custom.getCondition());
 	}
@@ -249,6 +253,7 @@ public final class RequestMappingInfo implements RequestCondition<RequestMapping
 	@Override
 	public int compareTo(RequestMappingInfo other, HttpServletRequest request) {
 		int result;
+		// 对比一下优先级
 		// Automatic vs explicit HTTP HEAD mapping
 		if (HttpMethod.HEAD.matches(request.getMethod())) {
 			result = this.methodsCondition.compareTo(other.getMethodsCondition(), request);

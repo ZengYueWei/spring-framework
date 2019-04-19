@@ -63,7 +63,7 @@ import org.springframework.web.method.HandlerMethod;
  * forms and GZIP compression. This typically shows when one needs to map the
  * filter to certain content types (e.g. images), or to all requests.
  *
- * @author Juergen Hoeller
+ * @author Juergen Hoeller˙˙˙˙˙
  * @since 20.06.2003
  * @see HandlerExecutionChain#getInterceptors
  * @see org.springframework.web.servlet.handler.HandlerInterceptorAdapter
@@ -94,6 +94,7 @@ public interface HandlerInterceptor {
 	 * that this interceptor has already dealt with the response itself.
 	 * @throws Exception in case of errors
 	 */
+	// 在HandlerMapping找到对应的handler之后，在执行相关Handler之前。
 	default boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
 
@@ -120,6 +121,7 @@ public interface HandlerInterceptor {
 	 * (can also be {@code null})
 	 * @throws Exception in case of errors
 	 */
+	// 在调用完handler后，渲染页面前调用
 	default void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
 			@Nullable ModelAndView modelAndView) throws Exception {
 	}
@@ -144,6 +146,9 @@ public interface HandlerInterceptor {
 	 * @param ex exception thrown on handler execution, if any
 	 * @throws Exception in case of errors
 	 */
+
+	// 在请求执行完成后，并且渲染完页面后回调
+	// 只有在 preHandle() 方法执行成功之后，才会被执行
 	default void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
 			@Nullable Exception ex) throws Exception {
 	}

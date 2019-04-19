@@ -134,6 +134,7 @@ public class HandlerExecutionChain {
 			for (int i = 0; i < interceptors.length; i++) {
 				HandlerInterceptor interceptor = interceptors[i];
 				if (!interceptor.preHandle(request, response, this.handler)) {
+					// 此处指的是，如果当前拦截前执行失败了，就以倒序的方式，将interceptorIndex之前的所有拦截器的afterCompletion的方法都调用了
 					triggerAfterCompletion(request, response, null);
 					return false;
 				}

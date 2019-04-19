@@ -95,10 +95,14 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 	public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
+		// 获取参数对应的NamedValueInfo
 		NamedValueInfo namedValueInfo = getNamedValueInfo(parameter);
+		// 如果它是内嵌类型的，则获取内嵌的参数。否则还是使用parameter自身
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
 
+		// 如果name只是占位符，则将其解析成对应的值
 		Object resolvedName = resolveStringValue(namedValueInfo.name);
+		// 如果解析失败，就抛出异常
 		if (resolvedName == null) {
 			throw new IllegalArgumentException(
 					"Specified name must not resolve to null: [" + namedValueInfo.name + "]");
@@ -118,6 +122,7 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 			arg = resolveStringValue(namedValueInfo.defaultValue);
 		}
 
+		// 执行值的类型转换
 		if (binderFactory != null) {
 			WebDataBinder binder = binderFactory.createBinder(webRequest, null, namedValueInfo.name);
 			try {
@@ -134,6 +139,7 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 			}
 		}
 
+		// 处理解析的值
 		handleResolvedValue(arg, namedValueInfo.name, parameter, mavContainer, webRequest);
 
 		return arg;

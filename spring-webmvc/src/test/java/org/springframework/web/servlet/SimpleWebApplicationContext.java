@@ -60,9 +60,11 @@ public class SimpleWebApplicationContext extends StaticWebApplicationContext {
 
 		registerSingleton(UiApplicationContextUtils.THEME_SOURCE_BEAN_NAME, DummyThemeSource.class);
 
+		// 注册handlerMapping和viewRosolver
 		registerSingleton("handlerMapping", BeanNameUrlHandlerMapping.class);
 		registerSingleton("viewResolver", InternalResourceViewResolver.class);
 
+		// 这是什么操作？？？
 		pvs = new MutablePropertyValues();
 		pvs.add("location", "org/springframework/web/context/WEB-INF/sessionContext.xml");
 		registerSingleton("viewResolver2", XmlViewResolver.class, pvs);
